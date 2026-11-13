@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tobacco Truth Detective</title><style>
+:root{--navy:#17324d;--blue:#176b9a;--teal:#168b83;--gold:#f2b84b;--ink:#203040;--muted:#607386;--paper:#f3f7fa;--good:#e8f6ee;--bad:#fff0ed}
+*{box-sizing:border-box}body{margin:0;padding:20px;background:var(--paper);font-family:Arial,Helvetica,sans-serif;color:var(--ink)}
+main{max-width:900px;margin:0 auto;background:#fff;border-radius:18px;padding:26px;box-shadow:0 8px 28px #17324d12}
+h1{margin:0 0 8px;color:var(--navy);font-size:clamp(26px,4vw,36px)}.intro{color:var(--muted);line-height:1.5}
+button,input{font:inherit}button{cursor:pointer;border:0;border-radius:10px;padding:11px 16px;background:var(--navy);color:white;font-weight:700}
+button.secondary{background:#e7eef4;color:var(--navy)}button:disabled{opacity:.5;cursor:default}
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}.stat{background:#edf3f7;border-radius:10px;padding:10px 14px;font-weight:700}
+.feedback{min-height:48px;margin:16px 0;padding:12px 14px;border-radius:10px;background:#edf3f7;line-height:1.45}.good{background:var(--good)}.bad{background:var(--bad)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.pill{display:inline-block;border-radius:99px;background:#e7f2f7;padding:5px 10px;color:var(--navy);font-size:13px;font-weight:700}
+small{color:var(--muted)}@media(max-width:560px){body{padding:10px}main{padding:18px}}
+
+.case{border:1px solid #d9e4eb;background:#f9fbfd;border-radius:14px;padding:18px;margin:18px 0}
+.claim{font-size:21px;line-height:1.4;font-weight:700;color:var(--navy);margin:10px 0 16px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}.choice{background:#fff;color:var(--ink);border:2px solid #d6e2ea;text-align:left;min-height:70px}
+.choice.selected{border-color:var(--blue);background:#edf7fc}.choice.correct{border-color:#4b9a6a;background:var(--good)}.choice.wrong{border-color:#d87969;background:var(--bad)}
+@media(max-width:560px){.choices{grid-template-columns:1fr}}
+</style></head><body><main>
+<h1>🕵️ Tobacco Truth Detective</h1>
+<p class="intro">Investigate each claim. Decide whether it is reliable, misleading, or needs more evidence. Use the clue to help solve the case.</p>
+<div class="stats"><div class="stat" id="caseNum">Case 1 of 8</div><div class="stat" id="score">Cases solved: 0</div></div>
+<div class="case"><div class="pill" id="sourceType">CASE FILE</div><div class="claim" id="claim"></div><p class="hint" id="clue"></p></div>
+<div class="choices" id="choices"></div>
+<div class="feedback" id="feedback" aria-live="polite">Choose the best detective finding.</div>
+<div class="actions"><button id="next" disabled>Next case</button><button class="secondary" id="restart">Restart investigation</button></div>
+<p><small>Detective tip: Check who created a claim, what evidence supports it, when it was published, and whether trustworthy health sources agree.</small></p>
+</main><script>
+/* CUSTOMIZE: Edit each case's claim, clue, options, answer index, and explanation. */
+const cases=[
+{type:"Social media post",claim:"“Vape aerosol is just harmless water vapor.”",clue:"Look for what may be present in the mist from an e-cigarette.",options:["Reliable information","Misleading claim","Not enough information"],answer:1,why:"This is misleading. E-cigarette aerosol is not simply water vapor and can contain nicotine, tiny particles, and other potentially harmful substances."},
+{type:"Product advertisement",claim:"“A sweet flavor means this product is safe.”",clue:"Does a flavor tell you what a product does to the body?",options:["Reliable information","Misleading claim","A proven health benefit"],answer:1,why:"This is misleading. Flavor does not establish safety or remove the health risks associated with nicotine or tobacco products."},
+{type:"Health fact sheet",claim:"“Nicotine is addictive.”",clue:"Consider whether nicotine can lead to dependence.",options:["Reliable information","Misleading claim","A personal opinion"],answer:0,why:"This is reliable information. Nicotine is an addictive substance."},
+{type:"Viral comment",claim:"“If a post has thousands of likes, its health advice must be accurate.”",clue:"Popularity and evidence are not the same thing.",options:["Reliable information","Misleading claim","Official guidance"],answer:1,why:"This is misleading. Likes and shares do not verify a health claim. Look for reliable sources and supporting evidence."},
+{type:"Public health message",claim:"“Secondhand smoke can harm people who do not smoke.”",clue:"Think about exposure to smoke in shared spaces.",options:["Reliable information","Misleading claim","An advertisement"],answer:0,why:"This is reliable information. Secondhand smoke exposure can cause health harms."},
+{type:"Anonymous online post",claim:"“Opening a window removes all secondhand-smoke risk indoors.”",clue:"Ask whether ventilation can eliminate exposure completely.",options:["Reliable information","Misleading claim","A verified statistic"],answer:1,why:"This is misleading. Opening windows does not eliminate secondhand-smoke exposure. Smoke-free indoor spaces provide better protection."},
+{type:"Quit-support website",claim:"“People who want to quit tobacco can seek help and support.”",clue:"Look for established quit-support services and health agencies.",options:["Reliable information","Misleading claim","A sales pitch"],answer:0,why:"This is reliable information. Support services, including quitlines, can help people who want to quit."},
+{type:"Unclear online claim",claim:"“A new study proves this tobacco product is completely risk-free.”",clue:"The post gives no study title, author, date, or link to the research.",options:["Reliable information","Misleading claim","Not enough information to verify"],answer:2,why:"There is not enough information to verify this claim. Find the original study, check who conducted it, and compare it with guidance from trusted health agencies. Be cautious of absolute claims such as completely risk-free."}
+];
+let index=0,score=0,locked=false;
+const $=id=>document.getElementById(id);
+function render(){$("caseNum").textContent=`Case ${index+1} of ${cases.length}`;$("score").textContent=`Cases solved: ${score}`;$("sourceType").textContent=cases[index].type;$("claim").textContent=cases[index].claim;$("clue").textContent="Detective clue: "+cases[index].clue;$("feedback").className="feedback";$("feedback").textContent="Choose the best detective finding.";$("next").disabled=true;$("next").textContent=index===cases.length-1?"View results":"Next case";$("choices").innerHTML="";locked=false;cases[index].options.forEach((opt,i)=>{let b=document.createElement("button");b.className="choice";b.textContent=opt;b.onclick=()=>solve(i,b);$("choices").appendChild(b)})}
+function solve(i,b){if(locked)return;locked=true;let c=cases[index],all=[...$("choices").children];all[c.answer].classList.add("correct");if(i===c.answer){score++;$("feedback").className="feedback good";$("feedback").textContent="Case solved! "+c.why}else{b.classList.add("wrong");$("feedback").className="feedback bad";$("feedback").textContent="Review the evidence. "+c.why}$("score").textContent=`Cases solved: ${score}`;$("next").disabled=false}
+$("next").onclick=()=>{if(index<cases.length-1){index++;render()}else{$("claim").textContent="Investigation complete!";$("clue").textContent="";$("choices").innerHTML="";$("feedback").className="feedback good";$("feedback").textContent=`You solved ${score} out of ${cases.length} cases. Restart to investigate again.`;$("next").disabled=true;$("next").textContent="All cases complete"}};
+$("restart").onclick=()=>{index=0;score=0;render()};render();
+</script></body></html>
